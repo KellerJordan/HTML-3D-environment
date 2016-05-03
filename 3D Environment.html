@@ -1,0 +1,222 @@
+<html>
+	<head>
+		<title>
+		3D Render-Infinite Tunnel
+		</title>
+	</head>
+	<body>
+		<div id="rotation">
+		</div>
+		<div id="position">
+		</div>
+		<div>
+			press keys r and f to change FOV
+		</div>
+		<canvas id="myCanvas" width="1600" height="900" style="border:1px solid #000000" onmousemove="rotHandler(event)">
+		</canvas>
+	</body>
+	<script>
+		var screenZ=1000;
+		var spheres=[];
+		var hoops=[];
+		var lines=[];
+		var cube=[];
+		var canvas=document.getElementById("myCanvas");
+		var c=canvas.getContext("2d");
+		var rotX=0;
+		var rotY=0;
+		var myX=0;
+		var myY=0;
+		var myZ=0;
+		var vz=100;
+		hoopVar=0;
+		function rotHandler(){
+			rotX=Math.PI/2*(canvas.width/2-event.clientX)/(canvas.width/2);
+			rotY=Math.PI/2*(canvas.height/2-event.clientY)/(canvas.height/2);
+			document.getElementById("rotation").innerHTML="rotation: "+rotX+", "+rotY;
+		}
+		window.onkeydown=function(e){
+		    var key=e.keyCode;
+		    // if(key==65){
+		    //     myX-=5;
+		    // }else if(key==68){
+		    //     myX+=5;
+		    // }else if(key==87){
+ 		   //  	myY-=5;
+		    // }else if(key==83){
+		    // 	myY+=5;
+		    // }else 
+		    if(key==82){
+		    	screenZ+=50;
+		   	}else if(key==70){
+		  		screenZ-=50;
+			}
+		}
+		function drawSphere(object){
+			x=object.x-myX;
+			y=object.y-myY;
+			z=object.z-myZ;
+			r=object.r;
+			x2=x*Math.cos(rotX)+z*Math.sin(rotX);
+			z2=z*Math.cos(rotX)-x*Math.sin(rotX);
+			y2=y*Math.cos(rotY)+z2*Math.sin(rotY);
+			z2=z2*Math.cos(rotY)-y*Math.sin(rotY);
+			var finalX=screenZ*x2/z2;
+			var finalY=screenZ*y2/z2;
+			var finalR=screenZ*r/z2;
+			c.beginPath();
+			c.arc(finalX+canvas.width/2,finalY+canvas.height/2,finalR,0,2*Math.PI);
+			c.stroke();
+			
+		}
+		function drawPolygon(array1,array2){
+			var ref2=array1.length-1;
+			for(i=0;i<array1.length;i++){
+				ref1=i;
+				draw3Line(array1[ref1],array1[ref2]);
+				ref2=i;
+			}
+			for(i=0;i<array1.length;i++){
+				draw3Line(array1[i],array2[i]);
+			}
+		}
+		function drawCube(array1,array2){
+			drawPolygon(array1,array2);
+			draw3Line(array2[0],array2[1]);
+			draw3Line(array2[1],array2[2]);
+			draw3Line(array2[2],array2[3]);
+			draw3Line(array2[3],array2[0]);
+		}
+		function pointMod(coord,z){
+			return(coord*screenZ/Math.abs(z));
+		}
+		function lineMod(coorda,za,coordb,zb){
+			return(100*(coordb-(coordb-coorda)*(zb-screenZ)/(zb-za)));
+			//return(-1000*coorda*screenZ/za);
+			//return(coorda*screenZ/za);
+		}
+		function pointHandler(object){
+			x=object.x-myX;
+			y=object.y-myY;
+			z=object.z-myZ;
+			x2=x*Math.cos(rotX)+z*Math.sin(rotX);
+			z2=z*Math.cos(rotX)-x*Math.sin(rotX);
+			y2=y*Math.cos(rotY)+z2*Math.sin(rotY);
+			z2=z2*Math.cos(rotY)-y*Math.sin(rotY);
+			return({x:x2,y:y2,z:z2});
+		}
+		function draw3Line(objecta,objectb){
+			object1=pointHandler(objecta);
+			object2=pointHandler(objectb);
+			x1=object1.x;
+			y1=object1.y;
+			z1=object1.z;
+			x2=object2.x;
+			y2=object2.y;
+			z2=object2.z;
+			if(z1>0&&z2<0){
+				x1=pointMod(x1,z1);
+				y1=pointMod(y1,z1);
+				x2=lineMod(x2,z2,x1,z1);
+				y2=lineMod(y2,z2,y1,z1);
+			}
+			if(z1<0&&z2>0){
+				x1=lineMod(x1,z1,x2,z2);
+				y1=lineMod(y1,z1,y2,z2);
+				x2=pointMod(x2,z2);
+				y2=pointMod(y2,z2);
+			}
+			if(z1>0&&z2>0){
+				x1=pointMod(x1,z1);
+				y1=pointMod(y1,z1);
+				x2=pointMod(x2,z2);
+				y2=pointMod(y2,z2);
+			}
+			if(z1>0||z2>0){
+				draw2Line(x1,y1,x2,y2);
+			}
+		}
+		function draw2Line(x1,y1,x2,y2){
+			c.moveTo(x1+canvas.width/2,y1+canvas.height/2);
+			c.lineTo(x2+canvas.width/2,y2+canvas.height/2);
+			c.stroke();
+		}
+		function addCube(x,y,z,r,numVertices){
+			cube.push([]);
+			for(i=0;i<numVertices;i++){
+				var angle=i*2*Math.PI/numVertices+Math.PI/4;
+				var x2=Math.sin(angle)*r+x;
+				var y2=Math.cos(angle)*r+y;
+				cube[cube.length-1].push({x:x2,y:y2,z:z});
+			}
+			cube.push([]);
+			for(i=0;i<numVertices;i++){
+				var angle=i*2*Math.PI/numVertices+Math.PI/4;
+				var x2=Math.sin(angle)*r+x;
+				var y2=Math.cos(angle)*r+y;
+				cube[cube.length-1].push({x:x2,y:y2,z:z+r/Math.sqrt(2)});
+			}
+		}
+		function addHoop(x,y,z,r,numVertices){
+			hoops.push([]);
+			for(i=0;i<numVertices;i++){
+				var angle=i*2*Math.PI/numVertices;
+				var x2=Math.sin(angle)*r+x;
+				var y2=Math.cos(angle)*r+y;
+				hoops[hoops.length-1].push({x:x2,y:y2,z:z});
+			}
+		}
+		function addLineGrid(x1,y1,z1,xs,ys,zs,num){
+			for(side1=0;side1<num+1;side1++){
+				lines.push([]);
+				lines[lines.length-1].push({x:x1+side1*xs/num,y:y1+side1*ys/num,z:z1});
+				lines[lines.length-1].push({x:x1+side1*xs/num,y:y1+side1*ys/num,z:z1+zs});
+			}
+			for(side2=0;side2<num+1;side2++){
+				lines.push([]);
+				lines[lines.length-1].push({x:x1,y:y1,z:z1+side2*zs/num});
+				lines[lines.length-1].push({x:x1+xs,y:y1+ys,z:z1+side2*zs/num});
+			}
+		}
+		var centerX=0;
+		var centerY=0;
+		var velocityX=0;
+		var velocityY=0;
+		setInterval(function Handler(){
+			c.clearRect(0,0,canvas.width,canvas.height);
+			myZ+=vz;
+			vz+=.1;
+			for(b=1;b<hoops.length;b++){
+				if(hoops[b][0].z<myZ){
+					//hoops.shift();
+				}else{
+					drawPolygon(hoops[b],hoops[b-1]);
+				}
+			}
+			// for(d=0;d<lines.length;d++){
+			// 	draw3Line(lines[d][0],lines[d][1]);
+			// }
+			drawCube(cube[0],cube[1]);
+			for(i=0;i<spheres.length;i++){
+				spheres[0].z=1000-70.7+myZ;
+				drawSphere(spheres[0]);
+			}
+			for(i=0;i<4;i++){
+				cube[0][i].z=1000+myZ;
+				cube[1][i].z=1070.70+myZ;
+			}
+			if(hoopVar%15==0){
+				centerX=1000*Math.sin((myZ+20000)/10000);
+				centerY=1000*Math.cos((myZ+20000)/10000);
+				addHoop(centerX,centerY,20000+myZ,100+500*Math.random(),10);
+			}
+			myX=1000*Math.sin(myZ/10000);
+			myY=1000*Math.cos(myZ/10000);
+			hoopVar++;
+			document.getElementById("position").innerHTML="position: "+myX+", "+myY+", "+myZ;
+		},20);
+		// addLineGrid(-2500,1000,0,5000,0,5000,10);
+		addCube(0,0,1500,50,4);
+		spheres.push({x:0,y:0,z:1500,r:30.9});
+	</script>
+</html>
